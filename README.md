@@ -47,6 +47,7 @@ end
 
 ## Reference
 
+```
 @inproceedings{DBLP:conf/icde/LiZCJW18,
   author    = {Xiucheng Li and
                Kaiqi Zhao and
@@ -65,6 +66,7 @@ end
   biburl    = {https://dblp.org/rec/bib/conf/icde/LiZCJW18},
   bibsource = {dblp computer science bibliography, https://dblp.org}
 }
+```
 
 ## Miscellaneous
 
