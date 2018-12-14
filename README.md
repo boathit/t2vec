@@ -57,7 +57,11 @@ In our original experiment, the model was trained with a Tesla K40 GPU about 14 
 
 ```bash
 cd experiment
+
 julia createTest.jl
+
+head -5 trj.t # the first 5 trajectories
+head -5 trj.label # trajectory ids
 ```
 
 It will produce two files `trj.t` and `trj.label`. Each row of `trj.t` (`trj.label`) is a token representation of the orginal trajectory (trajectory ID).
