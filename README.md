@@ -53,6 +53,8 @@ In our original experiment, the model was trained with a Tesla K40 GPU about 14 
 
 ## Embedding
 
+### Create test files
+
 ```bash
 cd experiment
 julia createTest.jl
@@ -60,11 +62,15 @@ julia createTest.jl
 
 It will produce two files `trj.t` and `trj.label`. Each row of `trj.t` (`trj.label`) is a token representation of the orginal trajectory (trajectory ID).
 
+### Embedding trajectories into vectors
+
 ```shell
 $ python t2vec.py -data experiment -vocab_size 18866 -checkpoint "best_model.pt" -mode 2
 ```
 
 It will encode the trajectories in file `experiment/trj.t` into vectors which will be saved into file `experiment/trj.h5`.
+
+### Vector representation
 
 In our experiment we train a three-layers model and the last layer outputs are used as the trajectory representations, see the code in `experiment/experiment.jl`:
 
