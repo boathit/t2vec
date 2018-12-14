@@ -11,14 +11,12 @@ The output hdf5 file will be used to construct vocabulary by `makeVocab!()` in
 """
 function porto2h5(csvfile::String)
     df = CSV.read(csvfile)
-    df[:TIMESTAMP] = convert(Array{String}, df[:TIMESTAMP])
-    df[:MISSING_DATA] = convert(Array{String}, df[:MISSING_DATA])
-    df[:POLYLINE] = convert(Array{String, 1}, df[:POLYLINE])
+    #df[:TIMESTAMP] = convert(Array{String}, df[:TIMESTAMP])
+    #df[:MISSING_DATA] = convert(Array{String}, df[:MISSING_DATA])
+    #df[:POLYLINE] = convert(Array{String, 1}, df[:POLYLINE])
 
     df = df[df[:MISSING_DATA] .== "False", :]
-
-    df[:timestamp] = [parse(s) for s in df[:TIMESTAMP]]
-    sort!(df, cols=[:timestamp])
+    sort!(df, [:TIMESTAMP])
 
     println("Processing $(size(df, 1)) trips...")
     ## writing in pure text
@@ -32,7 +30,7 @@ function porto2h5(csvfile::String)
     h5open("porto.h5", "w") do f
         num = 0
         for trip in df[:POLYLINE]
-            trip = parse(trip) |> eval
+            trip = Meta.parse(trip) |> eval
             tripLength = length(trip)
             tripLength == 0 && continue
             trip = hcat(trip...)

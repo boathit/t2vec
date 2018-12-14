@@ -243,7 +243,7 @@ function saveKNearestVocabs(region::SpatialRegion)
         D[:, vocab+1] = dists
     end
     cellsize = Int(region.xstep)
-    file = region.name * "-vocab-dist-cell$(cellsize).h5"
+    file = joinpath("../data", region.name * "-vocab-dist-cell$(cellsize).h5")
     h5open(file, "w") do f
         f["V"], f["D"] = V, D
     end
@@ -315,14 +315,14 @@ function createTrainVal(region::SpatialRegion,
                         max_length=100)
     seq2str(seq) = join(map(string, seq), " ") * "\n"
     h5open(trjfile, "r") do f
-        trainsrc, traintrg = open("train.src", "w"), open("train.trg", "w")
-        validsrc, validtrg = open("val.src", "w"), open("val.trg", "w")
+        trainsrc, traintrg = open("../data/train.src", "w"), open("../data/train.trg", "w")
+        validsrc, validtrg = open("../data/val.src", "w"), open("../data/val.trg", "w")
         for i = 1:ntrain+nval
             trip = f["/trips/$i"] |> read
             min_length <= size(trip, 2) <= max_length || continue
             trg = trip2seq(region, trip) |> seq2str
             noisetrips = injectnoise(trip, nsplit)
-            srcio, trgio = i <= ntrain? (trainsrc, traintrg):(validsrc, validtrg)
+            srcio, trgio = i <= ntrain ? (trainsrc, traintrg) : (validsrc, validtrg)
             for noisetrip in noisetrips
                 ## here: feel weird
                 #src = noisetrip |> trip2seq |> seq2str

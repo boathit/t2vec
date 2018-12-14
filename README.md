@@ -1,6 +1,29 @@
 
 This repository contains the code used in our **ICDE-18** paper [Deep Representation Learning for Trajectory Similarity Computation](https://drive.google.com/file/d/1RILex8lCQFHR30No-bvF2ez_g42cRzWx/view?usp=sharing).
 
+## Requirement
+
+* Ubuntu OS
+* [Julia 0.6.4](https://julialang.org/downloads/oldreleases.html) (**Julia 0.7+ is untested**)
+* Python >= 3.5 (Anaconda3 is recommended)
+* PyTorch 0.1.2 (You may want to use `virtualenv` to avoid being conflict with your current version)
+
+Please refer to the source code to install all required packages in Julia and Python.
+
+In Julia, you can install a package in REPL like
+
+```
+_
+_       _ _(_)_     |  A fresh approach to technical computing
+(_)     | (_) (_)    |  Documentation: https://docs.julialang.org
+_ _   _| |_  __ _   |  Type "?help" for help.
+| | | | | | |/ _` |  |
+| | |_| | | | (_| |  |  Version 0.6.4 (2018-07-09 19:09 UTC)
+_/ |\__'_|_|_|\__'_|  |  Official http://julialang.org/ release
+|__/                   |  x86_64-pc-linux-gnu
+
+julia> Pkg.add("StatsBase")
+```
 
 ## Preprocessing
 
@@ -19,7 +42,7 @@ $ julia preprocess.jl
 ## Training
 
 ```shell
-$ python t2vec.py -data data -vocab_size 18866 -criterion_name "KLDIV" -knearestvocabs "preprocessing/porto-vocab-dist-cell100.h5"
+$ python t2vec.py -data data -vocab_size 18866 -criterion_name "KLDIV" -knearestvocabs "data/porto-vocab-dist-cell100.h5"
 ```
 
 The training produces two model `checkpoint.pt` and `best_model.pt`, `checkpoint.pt` contains the latest trained model and `best_model.pt` saves the model which has the best performance on the validation data. You can find our saved `best_model.pt` [here](https://drive.google.com/open?id=1uxZUmvFHhpY8tOXvCDHuEd7KFOTYp109).
