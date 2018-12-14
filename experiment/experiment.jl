@@ -14,7 +14,7 @@ region = SpatialRegion(cityname,
                        5, # k
                        4) # vocab_start
 paramfile = "$(region.name)-param-cell$(Int(cellsize)).jld"
-loadregion!(region, joinpath("../data", paramfile))
+loadregion!(region, joinpath("../preprocessing", paramfile))
 ## no dowsampling or distorting
 #createQueryDB("../preprocessing/porto.h5", 1_000_000+20_000, 1000, 100_000,
 #              (x,y)->(x,y), (x,y)->(x,y))

@@ -13,7 +13,7 @@ region = SpatialRegion(cityname,
                        5, # k
                        4) # vocab_start
 paramfile = "$(region.name)-param-cell$(Int(cellsize)).jld"
-loadregion!(region, joinpath("../data", paramfile))
+loadregion!(region, joinpath("../preprocessing", paramfile))
 
 rate = 0.5
 do_split = true

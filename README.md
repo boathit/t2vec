@@ -28,7 +28,7 @@ julia> Pkg.add("StatsBase")
 
 ## Preprocessing
 
-The preprocessing step will generate all data required in the training stage, and the generated training and validation dataset will be saved in `data`. The preprocessing code is written in [Julia Language](https://julialang.org/), please refer to the code and install all required packages.
+The preprocessing step will generate all data required in the training stage, and the generated training and validation dataset will be saved in `data`.
 
 Two parameters can be set at this step, `cellsize` in `preprocessing/preprocess.jl` and denoising `radius` in `preprocessing/utils.jl:disort()`, you can leave them as their default values which are the ones used in our paper.
 
@@ -53,7 +53,12 @@ In our original experiment, the model was trained with a Tesla K40 GPU about 14 
 
 ## Embedding
 
-Please refer to the code in `experiment/experiment.jl` seeing how to generate the test file `trj.t` (alternatively, you can also create your own `trj.t` by referring the format of sample file in `data/trj.t` in which each row is a token representation of the orginal trajectory) and then run
+```bash
+cd experiment
+julia createTest.jl
+```
+
+It will produce two files `trj.t` and `trj.label`. Each row of `trj.t` (`trj.label`) is a token representation of the orginal trajectory (trajectory ID).
 
 ```shell
 $ python t2vec.py -data experiment -vocab_size 18866 -checkpoint "best_model.pt" -mode 2
@@ -64,9 +69,11 @@ It will encode the trajectories in file `experiment/trj.t` into vectors which wi
 In our experiment we train a three-layers model and the last layer outputs are used as the trajectory representations, see the code in `experiment/experiment.jl`:
 
 ```julia
-vecs = h5open(joinpath("", vecfile), "r") do f
+vecs = h5open(joinpath("", "trj.h5"), "r") do f
     read(f["layer3"])
 end
+
+vecs[i] # a vector representation of i-th trajectory
 ```
 
 ## Reference
