@@ -28,7 +28,7 @@ julia> Pkg.add("StatsBase")
 
 ## Preprocessing
 
-The preprocessing step will generate all data required in the training stage, and the generated training and validation dataset will be saved in `data`.
+The preprocessing step will generate all data required in the training stage. 
 
 Two parameters can be set at this step, `cellsize` in `preprocessing/preprocess.jl` and denoising `radius` in `preprocessing/utils.jl:disort()`, you can leave them as their default values which are the ones used in our paper.
 
@@ -39,6 +39,8 @@ $ mv train.csv data/porto.csv
 $ cd preprocessing
 $ julia preprocess.jl
 ```
+
+The generated files for training are saved in `data/`.
 
 ## Training
 
@@ -66,7 +68,7 @@ head -5 trj.label # trajectory ids
 
 It will produce two files `trj.t` and `trj.label`. Each row of `trj.t` (`trj.label`) is a token representation of the orginal trajectory (trajectory ID).
 
-### Embedding trajectories into vectors
+### Embed trajectories into vectors
 
 ```shell
 $ python t2vec.py -data experiment -vocab_size 18866 -checkpoint "best_model.pt" -mode 2
@@ -83,7 +85,7 @@ vecs = h5open(joinpath("", "trj.h5"), "r") do f
     read(f["layer3"])
 end
 
-vecs[i] # a vector representation of i-th trajectory
+vecs[i] # the vector representation of i-th trajectory
 ```
 
 ## Reference
