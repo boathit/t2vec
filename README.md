@@ -1,7 +1,7 @@
 
 This repository contains the code used in our **ICDE-18** paper [Deep Representation Learning for Trajectory Similarity Computation](https://drive.google.com/file/d/1RILex8lCQFHR30No-bvF2ez_g42cRzWx/view?usp=sharing).
 
-## Requirement
+## Requirements
 
 * Ubuntu OS
 * [Julia 0.6.4](https://julialang.org/downloads/oldreleases.html) (**Julia 0.7+ is untested**)
@@ -108,7 +108,3 @@ vecs[i] # a vector representation of i-th trajectory
   bibsource = {dblp computer science bibliography, https://dblp.org}
 }
 ```
-
-## Miscellaneous
-
-The code was written in Julia 0.5 and PyTorch 0.1.12 along with Python 3.5, and since then both Julia and PyTorch have evolved rapidly to a higher version which may bring some breaking changes, hence the code here only serves as an illustrating examples of our original prototype.
