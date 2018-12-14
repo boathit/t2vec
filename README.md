@@ -13,14 +13,15 @@ Please refer to the source code to install all required packages in Julia and Py
 In Julia, you can install a package in REPL like
 
 ```
-_
-_       _ _(_)_     |  A fresh approach to technical computing
-(_)     | (_) (_)    |  Documentation: https://docs.julialang.org
-_ _   _| |_  __ _   |  Type "?help" for help.
-| | | | | | |/ _` |  |
-| | |_| | | | (_| |  |  Version 0.6.4 (2018-07-09 19:09 UTC)
-_/ |\__'_|_|_|\__'_|  |  Official http://julialang.org/ release
+               _
+   _       _ _(_)_     |  A fresh approach to technical computing
+  (_)     | (_) (_)    |  Documentation: https://docs.julialang.org
+   _ _   _| |_  __ _   |  Type "?help" for help.
+  | | | | | | |/ _` |  |
+  | | |_| | | | (_| |  |  Version 0.6.4 (2018-07-09 19:09 UTC)
+ _/ |\__'_|_|_|\__'_|  |  Official http://julialang.org/ release
 |__/                   |  x86_64-pc-linux-gnu
+
 
 julia> Pkg.add("StatsBase")
 ```
