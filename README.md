@@ -53,7 +53,7 @@ The training produces two model `checkpoint.pt` and `best_model.pt`, `checkpoint
 In our original experiment, the model was trained with a Tesla K40 GPU about 14 hours so you can just terminate the training after 14 hours if you use a GPU that is as good as or better than K40, the above two models will be saved automatically.
 
 
-## Embedding
+## Encoding
 
 ### Create test files
 
@@ -68,7 +68,7 @@ head -5 trj.label # trajectory ids
 
 It will produce two files `trj.t` and `trj.label`. Each row of `trj.t` (`trj.label`) is a token representation of the orginal trajectory (trajectory ID).
 
-### Embed trajectories into vectors
+### Encode trajectories into vectors
 
 ```shell
 $ python t2vec.py -data experiment -vocab_size 18866 -checkpoint "best_model.pt" -mode 2
