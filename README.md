@@ -6,7 +6,7 @@ This repository contains the code used in our **ICDE-18** paper [Deep Representa
 * Ubuntu OS
 * [Julia 0.6.4](https://julialang.org/downloads/oldreleases.html) (**Julia 0.7+ is untested**)
 * Python >= 3.5 (Anaconda3 is recommended)
-* PyTorch 0.1.2 (You may want to use `virtualenv` to avoid being conflict with your current version)
+* PyTorch 0.1.12 (You may want to use `virtualenv` to avoid being conflict with your current version)
 
 Please refer to the source code to install all required packages in Julia and Python.
 
