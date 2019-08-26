@@ -1,7 +1,6 @@
 
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 from models import EncoderDecoder
 from data_utils import DataOrderScaner
 import os, h5py
@@ -13,15 +12,15 @@ def evaluate(src, model, max_length):
     """
     m0, m1 = model
     length = len(src)
-    src = Variable(torch.LongTensor(src))
+    src = torch.LongTensor(src)
     ## (seq_len, batch)
     src = src.view(-1, 1)
-    length = Variable(torch.LongTensor([[length]]))
+    length = torch.LongTensor([[length]])
 
     encoder_hn, H = m0.encoder(src, length)
     h = m0.encoder_hn2decoder_h0(encoder_hn)
     ## running the decoder step by step with BOS as input
-    input = Variable(torch.LongTensor([[constants.BOS]]))
+    input = torch.LongTensor([[constants.BOS]])
     trg = []
     for _ in range(max_length):
         ## `h` is updated for next iteration
@@ -35,7 +34,7 @@ def evaluate(src, model, max_length):
             break
         trg.append(word_id)
         ## update `input` for next iteration
-        input = Variable(torch.LongTensor([[word_id]]))
+        input = torch.LongTensor([[word_id]])
     return trg
 
 #checkpoint = torch.load("checkpoint.pt")
@@ -94,7 +93,6 @@ def t2vec(args):
             i = i + 1
             src, lengths, invp = scaner.getbatch()
             if src is None: break
-            src, lengths = Variable(src), Variable(lengths)
             if torch.cuda.is_available():
                 src, lengths, invp = src.cuda(), lengths.cuda(), invp.cuda()
             h, _ = m0.encoder(src, lengths)

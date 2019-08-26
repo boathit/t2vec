@@ -12,13 +12,13 @@ region = SpatialRegion(cityname,
                        60_000, # maxvocab_size
                        5, # k
                        4) # vocab_start
-paramfile = "$(region.name)-param-cell$(Int(cellsize)).jld"
-loadregion!(region, joinpath("../preprocessing", paramfile))
+paramfile = "$(region.name)-param-cell$(Int(cellsize))"
+loadregion!(region, joinpath("../data", paramfile))
 
 rate = 0.5
 do_split = true
 querydbfile = "querydb.h5"
-createQueryDB("../preprocessing/porto.h5", 1_000_000+20_000, 1000, 100_000,
+createQueryDB("../data/porto.h5", 1_000_000+20_000, 1000, 100_000,
               (x,y)->downsampling(x, y, rate),(x,y)->downsampling(x, y, rate);
               do_split=do_split,
               querydbfile=querydbfile)

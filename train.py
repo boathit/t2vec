@@ -1,11 +1,12 @@
 
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
-from torch.nn.utils import clip_grad_norm
+from torch.nn.utils import clip_grad_norm_
 from models import EncoderDecoder
 from data_utils import DataLoader
 import constants, time, os, shutil, logging, h5py
+
+
 
 def NLLcriterion(vocab_size):
     "construct NLL criterion"
@@ -13,16 +14,18 @@ def NLLcriterion(vocab_size):
     weight[constants.PAD] = 0
     ## The first dimension is not batch, thus we need
     ## to average over the batch manually
-    criterion = nn.NLLLoss(weight, size_average=False)
+    #criterion = nn.NLLLoss(weight, size_average=False)
+    criterion = nn.NLLLoss(weight, reduction='sum')
     return criterion
 
 def KLDIVcriterion(vocab_size):
     "construct KLDIV criterion"
-    weight = torch.ones(vocab_size)
-    weight[constants.PAD] = 0
-    ## The first dimension is not batch, thus we need
-    ## to average over the batch manually
-    criterion = nn.KLDivLoss(weight, size_average=False)
+    # weight = torch.ones(vocab_size)
+    # weight[constants.PAD] = 0
+    # ## The first dimension is not batch, thus we need
+    # ## to average over the batch manually
+    # criterion = nn.KLDivLoss(weight, size_average=False)
+    criterion = nn.KLDivLoss(reduction='sum')
     return criterion
 
 def KLDIVloss(output, target, criterion, V, D):
@@ -34,6 +37,7 @@ def KLDIVloss(output, target, criterion, V, D):
     D (vocab_size, k)
     """
     ## (batch, k) index in vocab_size dimension
+    ## k-nearest neighbors for target
     indices = torch.index_select(V, 0, target)
     ## (batch, k) gather along vocab_size dimension
     outputk = torch.gather(output, 1, indices)
@@ -47,16 +51,19 @@ def KLDIVloss2(output, target, criterion, V, D):
     """
     indices = torch.index_select(V, 0, target)
     targetk = torch.index_select(D, 0, target)
-    fulltarget = Variable(torch.zeros(output.size())).scatter_(1, indices, targetk)
+    fulltarget = torch.zeros(output.size()).scatter_(1, indices, targetk)
     ## here: need Variable(fulltarget).cuda() if use gpu
-    fulltarget = Variable(fulltarget)
+    fulltarget = fulltarget.cuda()
     return criterion(output, fulltarget)
 
 def dist2weight(D, dist_decay_speed=0.8):
     D = D.div(100)
     D = torch.exp(-D * dist_decay_speed)
-    s = D.sum(dim=1)
-    return D.div(s.expand_as(D))
+    s = D.sum(dim=1, keepdim=True)
+    D = D / s
+    ## The PAD should not contribute to the decoding loss
+    D[constants.PAD, :] = 0.0
+    return D
 
 
 def batchloss(output, target, generator, lossF, generator_batch):
@@ -114,18 +121,15 @@ def validate(valData, model, lossF, args):
     total_loss = 0
     for iteration in range(num_iteration):
         input, lengths, target = valData.getbatch()
-        input = Variable(input, volatile=True)
-        lengths = Variable(lengths, volatile=True)
-        target = Variable(target, volatile=True)
         if args.cuda and torch.cuda.is_available():
             input, lengths, target = input.cuda(), lengths.cuda(), target.cuda()
         output = m0(input, lengths, target)
         loss = batchloss(output, target, m1, lossF, args.generator_batch)
-        total_loss += loss * output.size(1)
+        total_loss += loss.item() * output.size(1)
     ## switch back to training mode
     m0.train()
     m1.train()
-    return total_loss.data[0] / valData.size
+    return total_loss / valData.size
 
 
 def train(args):
@@ -160,7 +164,7 @@ def train(args):
         print("Loading vocab distance file {}...".format(args.knearestvocabs))
         with h5py.File(args.knearestvocabs) as f:
             V, D = f["V"][...], f["D"][...]
-            V, D = Variable(torch.LongTensor(V)), Variable(torch.FloatTensor(D))
+            V, D = torch.LongTensor(V), torch.FloatTensor(D)
         D = dist2weight(D, args.dist_decay_speed)
         if args.cuda and torch.cuda.is_available():
             V, D = V.cuda(), D.cuda()
@@ -214,7 +218,6 @@ def train(args):
     for iteration in range(args.start_iteration, num_iteration):
         try:
             input, lengths, target = trainData.getbatch()
-            input, lengths, target = Variable(input), Variable(lengths), Variable(target)
             if args.cuda and torch.cuda.is_available():
                 input, lengths, target = input.cuda(), lengths.cuda(), target.cuda()
 
@@ -226,13 +229,13 @@ def train(args):
             ## compute the gradients
             loss.backward()
             ## clip the gradients
-            clip_grad_norm(m0.parameters(), args.max_grad_norm)
-            clip_grad_norm(m1.parameters(), args.max_grad_norm)
+            clip_grad_norm_(m0.parameters(), args.max_grad_norm)
+            clip_grad_norm_(m1.parameters(), args.max_grad_norm)
             ## one step optimization
             m0_optimizer.step()
             m1_optimizer.step()
             ## average loss for one word
-            avg_loss = loss.data[0] / target.size(0)
+            avg_loss = loss.item() / target.size(0)
             if iteration % args.print_freq == 0:
                 print("Iteration: {}\tLoss: {}".format(iteration, avg_loss))
             if iteration % args.save_freq == 0 and iteration > 0:

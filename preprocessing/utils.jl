@@ -1,5 +1,5 @@
 
-using CSV, HDF5
+using CSV, DataFrames, HDF5
 
 """
 This function read the orginal porto taxi csv file and save all trips into
@@ -15,7 +15,7 @@ function porto2h5(csvfile::String)
     #df[:MISSING_DATA] = convert(Array{String}, df[:MISSING_DATA])
     #df[:POLYLINE] = convert(Array{String, 1}, df[:POLYLINE])
 
-    df = df[df[:MISSING_DATA] .== "False", :]
+    df = df[df.MISSING_DATA .== "False", :]
     sort!(df, [:TIMESTAMP])
 
     println("Processing $(size(df, 1)) trips...")
@@ -27,9 +27,9 @@ function porto2h5(csvfile::String)
     #    end
     #end
     ## writing in numeric matrix with hdf5
-    h5open("porto.h5", "w") do f
+    h5open("../data/porto.h5", "w") do f
         num = 0
-        for trip in df[:POLYLINE]
+        for trip in df.POLYLINE
             trip = Meta.parse(trip) |> eval
             tripLength = length(trip)
             tripLength == 0 && continue
@@ -44,6 +44,26 @@ function porto2h5(csvfile::String)
     end
 end
 
+function porto2standardcsv(portocsv::String)
+    df = CSV.read(portocsv)
+    df = df[df.MISSING_DATA .== "False", :]
+    #sort!(df, [:TIMESTAMP])
+    trips = DataFrame[]
+    for (i, row) in enumerate(eachrow(df))
+        gps = Meta.parse(row.POLYLINE) |> eval
+        tripLength = length(gps)
+        tripLength == 0 && continue
+        gps = hcat(gps...)
+        trip = DataFrame(tripid=fill(row.TRIP_ID, tripLength),
+                         timestamps=row.TIMESTAMP .+ collect(0:tripLength-1) * 15,
+                         lon=gps[1, :],
+                         lat=gps[2, :])
+        push!(trips, trip)
+        i % 100_000 == 0 && println("Processed $i rows.")
+    end
+    #CSV.write("../data/porto-trips.csv", trips, header=[:tripid, :timestamps, :lon, :lat])
+    trips
+end
 
 """
 Distorting a trip using Gaussian noise

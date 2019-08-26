@@ -16,7 +16,6 @@ from evaluate import evaluator, t2vec
 ## cell25
 ## python t2vec.py -data portocell25_data -vocab_size 60004 -criterion_name "KLDIV" -knearestvocabs "preprocessing/porto-vocab-dist-cell25.h5"
 
-
 parser = argparse.ArgumentParser(description="train.py")
 
 parser.add_argument("-data", default="data",

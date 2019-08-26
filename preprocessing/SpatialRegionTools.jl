@@ -1,8 +1,8 @@
 #module SpatialRegionTools
 
-import DataStructures.Accumulator
-import StatsBase.rle
-using HDF5, JLD
+using StatsBase:rle
+using HDF5
+using DataStructures
 using NearestNeighbors
 include("utils.jl")
 
@@ -70,16 +70,16 @@ mutable struct SpatialRegion
                            vocab_start::Int)
         minx, miny = lonlat2meters(minlon, minlat)
         maxx, maxy = lonlat2meters(maxlon, maxlat)
-        numx = round(maxx - minx, 6) / xstep
+        numx = round(maxx - minx, digits=6) / xstep
         numx = convert(Int, ceil(numx))
-        numy = round(maxy - miny, 6) / ystep
+        numy = round(maxy - miny, digits=6) / ystep
         numy = convert(Int, ceil(numy))
         new(name,
             minlon, minlat, maxlon, maxlat,
             minx, miny, maxx, maxy,
             xstep, ystep,
             numx, numy, minfreq, maxvocab_size, k,
-            Accumulator(Int, Int),
+            Accumulator{Int, Int}(),
             Int[],
             Any,
             Dict(),
@@ -113,8 +113,8 @@ end
 Web Mercator coordinate to cell id
 """
 function coord2cell(region::SpatialRegion, x::Float64, y::Float64)
-    xoffset = round(x - region.minx, 6) / region.xstep
-    yoffset = round(y - region.miny, 6) / region.ystep
+    xoffset = round(x - region.minx, digits=6) / region.xstep
+    yoffset = round(y - region.miny, digits=6) / region.ystep
     xoffset = convert(Int, floor(xoffset))
     yoffset = convert(Int, floor(yoffset))
     yoffset * region.numx + xoffset
@@ -168,7 +168,7 @@ For a trip (trajectory), each point lies in a column when reading with Julia
 while it lies in a row if reading with Python.
 """
 function makeVocab!(region::SpatialRegion, trjfile::String)
-    region.cellcount = Accumulator(Int, Int)
+    region.cellcount = Accumulator{Int, Int}()
     ## useful for evaluating the size of region bounding box
     num_out_region = 0
     ## scan all trips (trajectories)
@@ -191,15 +191,16 @@ function makeVocab!(region::SpatialRegion, trjfile::String)
     end
     ## filter out all hot cells
     max_num_hotcells = min(region.maxvocab_size, length(region.cellcount))
-    topcellcount =
-        sort(collect(region.cellcount), by=last, rev=true)[1:max_num_hotcells]
+    topcellcount = sort(collect(region.cellcount), by=last, rev=true)[1:max_num_hotcells]
     println("Cell count at max_num_hotcells:$(max_num_hotcells) is $(last(topcellcount[end]))")
-    region.hotcell =
-        filter((k,v)->v >= region.minfreq, Dict(topcellcount))|>keys|>collect
+    #region.hotcell =
+    #    filter((k,v)->v >= region.minfreq, Dict(topcellcount))|>keys|>collect
+    region.hotcell = filter(p -> last(p) >= region.minfreq, topcellcount) .|> first
     ## build the map between cell and vocab id
     region.hotcell2vocab = Dict([(cell, i-1+region.vocab_start)
         for (i, cell) in enumerate(region.hotcell)])
-    region.vocab2hotcell = map(reverse, region.hotcell2vocab)
+    #region.vocab2hotcell = map(reverse, region.hotcell2vocab)
+    region.vocab2hotcell = Dict(last(p) => first(p) for p in region.hotcell2vocab)
     ## vocabulary size
     region.vocab_size = region.vocab_start + length(region.hotcell)
     ## build the hot cell kdtree to facilitate search
@@ -232,15 +233,15 @@ function saveKNearestVocabs(region::SpatialRegion)
     V = zeros(Int, region.k, region.vocab_size)
     D = zeros(Float64, region.k, region.vocab_size)
     for vocab in 0:region.vocab_start-1
-        V[:, vocab+1] = vocab
-        D[:, vocab+1] = 0.0
+        V[:, vocab+1] .= vocab
+        D[:, vocab+1] .= 0.0
     end
     for vocab in region.vocab_start:region.vocab_size-1
         cell = region.vocab2hotcell[vocab]
         kcells, dists = knearestHotcells(region, cell, region.k)
         kvocabs = map(x->region.hotcell2vocab[x], kcells)
-        V[:, vocab+1] = kvocabs
-        D[:, vocab+1] = dists
+        V[:, vocab+1] .= kvocabs
+        D[:, vocab+1] .= dists
     end
     cellsize = Int(region.xstep)
     file = joinpath("../data", region.name * "-vocab-dist-cell$(cellsize).h5")
@@ -331,6 +332,7 @@ function createTrainVal(region::SpatialRegion,
                 write(trgio, trg)
             end
             i % 100_000 == 0 && println("Scaned $i trips...")
+            #i >= 8_000 && break
         end
         close(trainsrc), close(traintrg), close(validsrc), close(validtrg)
     end
@@ -340,7 +342,7 @@ end
 function saveregion(region::SpatialRegion, paramfile::String)
     save(paramfile,
           # JLD cannot handle Accumulator correctly
-          "cellcount", region.cellcount.map,
+          #"cellcount", region.cellcount.map,
           "hotcell", region.hotcell,
           "hotcell2vocab", region.hotcell2vocab,
           "vocab2hotcell", region.vocab2hotcell,
@@ -351,7 +353,7 @@ end
 
 function loadregion!(region::SpatialRegion, paramfile::String)
     jldopen(paramfile, "r") do f
-        region.cellcount = read(f, "cellcount")
+        #region.cellcount = read(f, "cellcount")
         region.hotcell = read(f, "hotcell")
         region.hotcell2vocab = read(f, "hotcell2vocab")
         region.vocab2hotcell = read(f, "vocab2hotcell")

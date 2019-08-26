@@ -1,7 +1,6 @@
 
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 from torch.nn.utils.rnn import pad_packed_sequence
 from torch.nn.utils.rnn import pack_padded_sequence
 import os
@@ -52,7 +51,7 @@ class GlobalAttention(nn.Module):
         super(GlobalAttention, self).__init__()
         self.L1 = nn.Linear(hidden_size, hidden_size, bias=False)
         self.L2 = nn.Linear(2*hidden_size, hidden_size, bias=False)
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=1)
         self.tanh = nn.Tanh()
 
     def forward(self, q, H):

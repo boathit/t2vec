@@ -4,51 +4,58 @@ This repository contains the code used in our **ICDE-18** paper [Deep Representa
 ## Requirements
 
 * Ubuntu OS
-* [Julia 0.6.4](https://julialang.org/downloads/oldreleases.html) (**Julia 0.7+ is untested**)
+* [Julia 1.0+](https://julialang.org/downloads/)
 * Python >= 3.5 (Anaconda3 is recommended)
-* PyTorch 0.1.12 (You may want to use `virtualenv` to avoid being conflict with your current version)
+* PyTorch 1.0+
 
 Please refer to the source code to install all required packages in Julia and Python.
 
-In Julia, you can install a package in REPL like
+You can install all packages involved for Julia by running,
 
+```shell
+$ julia pkg-install.jl
 ```
-               _
-   _       _ _(_)_     |  A fresh approach to technical computing
-  (_)     | (_) (_)    |  Documentation: https://docs.julialang.org
-   _ _   _| |_  __ _   |  Type "?help" for help.
-  | | | | | | |/ _` |  |
-  | | |_| | | | (_| |  |  Version 0.6.4 (2018-07-09 19:09 UTC)
- _/ |\__'_|_|_|\__'_|  |  Official http://julialang.org/ release
-|__/                   |  x86_64-pc-linux-gnu
 
-
-julia> Pkg.add("StatsBase")
-```
 
 ## Preprocessing
 
-The preprocessing step will generate all data required in the training stage. 
+The preprocessing step will generate all data required in the training stage.
 
-Two parameters can be set at this step, `cellsize` in `preprocessing/preprocess.jl` and denoising `radius` in `preprocessing/utils.jl:disort()`, you can leave them as their default values which are the ones used in our paper.
+1. For the Porto dataset, you can do as follows.
 
-```shell
-$ curl http://archive.ics.uci.edu/ml/machine-learning-databases/00339/train.csv.zip -o data/porto.csv.zip
-$ unzip data/porto.csv.zip
-$ mv train.csv data/porto.csv
-$ cd preprocessing
-$ julia preprocess.jl
-```
+  ```shell
+  $ curl http://archive.ics.uci.edu/ml/machine-learning-databases/00339/train.csv.zip -o data/porto.csv.zip
+  $ unzip data/porto.csv.zip
+  $ mv train.csv data/porto.csv
+  $ cd preprocessing
+  $ julia porto2h5.jl
+  $ julia preprocess.jl
+  ```
 
-The generated files for training are saved in `data/`.
+2. If you want to work on another city, you are supposed to provide the expected hdf5 input `t2vec/data/cityname.h5` as well as set proper hyperparameters in `t2vec/hyper-parameters.json`. The expected hdf5 input requires the following format,
+
+   ```julia
+   attrs(f)["num"] = number of trajectories
+
+   f["/trips/i"] = matrix (2xn)
+   f["/timestamps/i"] = vector (n,)
+   ```
+
+   `attrs(f)["num"]` stores the number of trajectories in total; `f["/trips/i"]` is the gps matrix for i-th trajectory, the first row is the longitude sequence and the second row is the latitude sequence, `f["/timestamps/i"]` is the corresponding timestamp sequence. Please refer to [`porto2h5`](https://github.com/boathit/t2vec/blob/master/preprocessing/utils.jl#L12) to see how to generate it.
+
+
+
+The generated files for training are saved in `t2vec/data/`.
 
 ## Training
 
 ```shell
-$ python t2vec.py -data data -vocab_size 18866 -criterion_name "KLDIV" -knearestvocabs "data/porto-vocab-dist-cell100.h5"
+$ python t2vec.py -data data -vocab_size 18948 -criterion_name "KLDIV" -knearestvocabs "data/porto-vocab-dist-cell100.h5"
 ```
 
-The training produces two model `checkpoint.pt` and `best_model.pt`, `checkpoint.pt` contains the latest trained model and `best_model.pt` saves the model which has the best performance on the validation data. You can find our saved `best_model.pt` [here](https://drive.google.com/open?id=1uxZUmvFHhpY8tOXvCDHuEd7KFOTYp109).
+where 18948 (18866) is the output of last stage.
+
+The training produces two model `checkpoint.pt` and `best_model.pt`, `checkpoint.pt` contains the latest trained model and `best_model.pt` saves the model which has the best performance on the validation data. You can find our saved `best_model.pt` [here]().
 
 In our original experiment, the model was trained with a Tesla K40 GPU about 14 hours so you can just terminate the training after 14 hours if you use a GPU that is as good as or better than K40, the above two models will be saved automatically.
 
@@ -71,7 +78,7 @@ It will produce two files `trj.t` and `trj.label`. Each row of `trj.t` (`trj.lab
 ### Encode trajectories into vectors
 
 ```shell
-$ python t2vec.py -data experiment -vocab_size 18866 -checkpoint "best_model.pt" -mode 2
+$ python t2vec.py -data experiment -vocab_size 18948 -checkpoint "best_model.pt" -mode 2
 ```
 
 It will encode the trajectories in file `experiment/trj.t` into vectors which will be saved into file `experiment/trj.h5`.

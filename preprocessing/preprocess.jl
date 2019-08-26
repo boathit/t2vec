@@ -1,33 +1,55 @@
 
+using JSON
+using DataStructures
+using NearestNeighbors
+using Serialization
 include("SpatialRegionTools.jl")
 
-isfile("porto.h5") || porto2h5("../data/porto.csv")
+param  = JSON.parsefile("../hyper-parameters.json")
+regionps = param["region"]
+cityname = regionps["cityname"]
+cellsize = regionps["cellsize"]
 
-cellsize = 100.0
-cityname = "porto"
+if !isfile("../data/$cityname.h5")
+    println("Please provide the correct hdf5 file ../data/$cityname.h5")
+    exit(1)
+end
+
+println("Building spatial region with:
+         cityname=$cityname,
+         minlon=$(regionps["minlon"]),
+         minlat=$(regionps["minlat"]),
+         maxlon=$(regionps["maxlon"]),
+         maxlat=$(regionps["maxlat"]),
+         cellsize=$cellsize,
+         minfreq=$(regionps["minfreq"])")
+
 region = SpatialRegion(cityname,
-                       -8.735152, 40.953673,
-                       -8.156309, 41.307945,
+                       regionps["minlon"], regionps["minlat"],
+                       regionps["maxlat"], regionps["maxlat"],
                        cellsize, cellsize,
-                       100, # minfreq
+                       regionps["minfreq"], # minfreq
                        40_000, # maxvocab_size
                        10, # k
                        4) # vocab_start
-#region.numx * region.numy
-#region.maxy - region.miny
-#region.maxx - region.minx
-paramfile = "$(region.name)-param-cell$(Int(cellsize)).jld"
+
+paramfile = "../data/$(region.name)-param-cell$(Int(cellsize))"
 if isfile(paramfile)
     println("Reading parameter file from $paramfile")
-    loadregion!(region, paramfile)
+    #loadregion!(region, paramfile)
+    region = deserialize(paramfile)
 else
     println("Creating paramter file $paramfile")
-    num_out_region = makeVocab!(region, "$cityname.h5")
-    saveregion(region, paramfile)
+    num_out_region = makeVocab!(region, "../data/$cityname.h5")
+    #saveregion(region, paramfile)
+    serialize(paramfile, region)
 end
-#num_out_region
+
+#println("Making Vocabulary...")
+#num_out_region = makeVocab!(region, "../data/$cityname.h5")
+
 println("Vocabulary size $(region.vocab_size) with cell size $cellsize (meters)")
-createTrainVal(region, "$cityname.h5", downsamplingDistort, 1_000_000, 10_000)
+createTrainVal(region, "../data/$cityname.h5", downsamplingDistort, 1_000_000, 10_000)
 saveKNearestVocabs(region)
 
 #region.cellcount |> keys |> maximum
