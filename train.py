@@ -178,7 +178,7 @@ def train(args):
                         args.dropout,
                         args.bidirectional)
     m1 = nn.Sequential(nn.Linear(args.hidden_size, args.vocab_size),
-                       nn.LogSoftmax())
+                       nn.LogSoftmax(dim=1))
     if args.cuda and torch.cuda.is_available():
         print("=> training with GPU")
         m0.cuda()
