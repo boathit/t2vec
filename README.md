@@ -49,10 +49,10 @@ The generated files for training are saved in `t2vec/data/`.
 ## Training
 
 ```shell
-$ python t2vec.py -data data -vocab_size 18948 -criterion_name "KLDIV" -knearestvocabs "data/porto-vocab-dist-cell100.h5"
+$ python t2vec.py -data data -vocab_size 18866 -criterion_name "KLDIV" -knearestvocabs "data/porto-vocab-dist-cell100.h5"
 ```
 
-where 18948 (18866) is the output of last stage.
+where 18866 is the output of last stage.
 
 The training produces two model `checkpoint.pt` and `best_model.pt`, `checkpoint.pt` contains the latest trained model and `best_model.pt` saves the model which has the best performance on the validation data. You can find our saved `best_model.pt` [here]().
 
@@ -77,7 +77,7 @@ It will produce two files `trj.t` and `trj.label`. Each row of `trj.t` (`trj.lab
 ### Encode trajectories into vectors
 
 ```shell
-$ python t2vec.py -data experiment -vocab_size 18948 -checkpoint "best_model.pt" -mode 2
+$ python t2vec.py -data experiment -vocab_size 18866 -checkpoint "best_model.pt" -mode 2
 ```
 
 It will encode the trajectories in file `experiment/trj.t` into vectors which will be saved into file `experiment/trj.h5`.

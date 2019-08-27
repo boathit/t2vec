@@ -15,23 +15,25 @@ if !isfile("../data/$cityname.h5")
     exit(1)
 end
 
-println("Building spatial region with:
-         cityname=$cityname,
-         minlon=$(regionps["minlon"]),
-         minlat=$(regionps["minlat"]),
-         maxlon=$(regionps["maxlon"]),
-         maxlat=$(regionps["maxlat"]),
-         cellsize=$cellsize,
-         minfreq=$(regionps["minfreq"])")
-
 region = SpatialRegion(cityname,
                        regionps["minlon"], regionps["minlat"],
-                       regionps["maxlat"], regionps["maxlat"],
+                       regionps["maxlon"], regionps["maxlat"],
                        cellsize, cellsize,
                        regionps["minfreq"], # minfreq
                        40_000, # maxvocab_size
                        10, # k
                        4) # vocab_start
+
+
+println("Building spatial region with:
+        cityname=$(region.name),
+        minlon=$(region.minlon),
+        minlat=$(region.minlat),
+        maxlon=$(region.maxlon),
+        maxlat=$(region.maxlat),
+        xstep=$(region.xstep),
+        ystep=$(region.ystep),
+        minfreq=$(region.minfreq)")
 
 paramfile = "../data/$(region.name)-param-cell$(Int(cellsize))"
 if isfile(paramfile)
