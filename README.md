@@ -68,11 +68,11 @@ cd experiment
 
 julia createTest.jl
 
-head -5 trj.t # the first 5 trajectories
-head -5 trj.label # trajectory ids
+head -5 ../data/trj.t # the first 5 trajectories
+head -5 ../data/trj.label # trajectory ids
 ```
 
-It will produce two files `trj.t` and `trj.label`. Each row of `trj.t` (`trj.label`) is a token representation of the orginal trajectory (trajectory ID).
+It will produce two files `data/trj.t` and `data/trj.label`. Each row of `trj.t` (`trj.label`) is a token representation of the orginal trajectory (trajectory ID).
 
 ### Encode trajectories into vectors
 
