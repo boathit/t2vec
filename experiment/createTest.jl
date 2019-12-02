@@ -1,24 +1,56 @@
+using JSON
+using Serialization
 include("utils.jl")
 
 
-cellsize = 100.0
-cityname = "porto"
-region = SpatialRegion(cityname,
-                       -8.735152, 40.953673,
-                       -8.156309, 41.307945,
-                       cellsize, cellsize,
-                       100, # minfreq
-                       60_000, # maxvocab_size
-                       5, # k
-                       4) # vocab_start
-paramfile = "$(region.name)-param-cell$(Int(cellsize))"
-loadregion!(region, joinpath("../data", paramfile))
+datapath = "../data"
 
-rate = 0.5
+param = JSON.parsefile("../hyper-parameters.json")
+regionps = param["region"]
+cityname = regionps["cityname"]
+cellsize = regionps["cellsize"]
+
+region = SpatialRegion(cityname,
+                       regionps["minlon"], regionps["minlat"],
+                       regionps["maxlon"], regionps["maxlat"],
+                       cellsize, cellsize,
+                       regionps["minfreq"], # minfreq
+                       40_000, # maxvocab_size
+                       10, # k
+                       4)
+
+println("Building spatial region with:
+        cityname=$(region.name),
+        minlon=$(region.minlon),
+        minlat=$(region.minlat),
+        maxlon=$(region.maxlon),
+        maxlat=$(region.maxlat),
+        xstep=$(region.xstep),
+        ystep=$(region.ystep),
+        minfreq=$(region.minfreq)")
+
+paramfile = "$datapath/$(region.name)-param-cell$(Int(cellsize))"
+if isfile(paramfile)
+    println("Reading parameter file from $paramfile")
+    region = deserialize(paramfile)
+    println("Loaded $paramfile into region")
+else
+    println("Cannot find $paramfile")
+end
+
+
 do_split = true
-querydbfile = "querydb.h5"
-createQueryDB("../data/porto.h5", 1_000_000+20_000, 1000, 100_000,
-              (x,y)->downsampling(x, y, rate),(x,y)->downsampling(x, y, rate);
+start = 1_000_000+20_000
+num_query = 1000
+num_db = 100_000
+querydbfile = joinpath(datapath, "querydb.h5")
+tfile = joinpath(datapath, "trj.t")
+labelfile = joinpath(datapath, "trj.label")
+vecfile = joinpath(datapath, "trj.h5")
+
+createQueryDB("$datapath/$cityname.h5", start, num_query, num_db,
+              (x, y)->(x, y),
+              (x, y)->(x, y);
               do_split=do_split,
               querydbfile=querydbfile)
-createTLabel(region, querydbfile; tfile="exp-trj.t",labelfile="exp-trj.label")
+createTLabel(region, querydbfile; tfile=tfile, labelfile=labelfile)
