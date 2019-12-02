@@ -1,8 +1,7 @@
-## experiment utils
-
 using HDF5
 using NearestNeighbors
 using Distances
+using DelimitedFiles
 #include("../preprocessing/utils.jl")
 include("../preprocessing/SpatialRegionTools.jl")
 
@@ -163,10 +162,10 @@ This function is applicable to vector representations.
 
 query[:, i] (db[:, i]) represent a trajectory.
 """
-function ranksearch{T<:Real}(query::Matrix{T},
-                             queryLabel::Vector{Int},
-                             db::Matrix{T},
-                             dbLabel::Vector{Int})
+function ranksearch(query::Matrix{T},
+                    queryLabel::Vector{Int},
+                    db::Matrix{T},
+                    dbLabel::Vector{Int}) where T
     @assert size(query, 2) == length(queryLabel) "unmatched query and label"
     @assert size(db, 2) == length(dbLabel) "unmatched db and label"
     println("Building KDTree...")
@@ -178,8 +177,7 @@ function ranksearch{T<:Real}(query::Matrix{T},
         while k < dbsize
             idxs, _ = knn(kdtree, x, k, true)
             r = findfirst(t->t==xLabel, dbLabel[idxs])
-            r > 0 && return r
-            k = 2k
+            r == nothing ? k = 2k : return r
         end
         dbsize
     end
@@ -200,7 +198,7 @@ function ranksearch(query::Vector{Vector{T}},
                     queryLabel::Vector{Int},
                     db::Vector{Vector{T}},
                     dbLabel::Vector{Int},
-                    distance) where {T<:Real}
+                    distance) where T<:Real
     @assert length(query) == length(queryLabel) "unmatched query and label"
     @assert length(db) == length(dbLabel) "unmatched db and label"
     function rank(x::Vector{T}, xLabel::Int)
@@ -208,7 +206,7 @@ function ranksearch(query::Vector{Vector{T}},
         idxs = sortperm(dists)
         findfirst(t -> t == xLabel, dbLabel[idxs])
     end
-    ranks = Vector{Int}(length(queryLabel))
+    ranks = Vector{Int}(undef, length(queryLabel))
     for i = 1:length(queryLabel)
         ranks[i] = rank(query[i], queryLabel[i])
     end

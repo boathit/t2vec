@@ -1,5 +1,4 @@
 include("utils.jl")
-include("baselines.jl")
 
 
 cellsize = 100.0
@@ -22,4 +21,4 @@ createQueryDB("../data/porto.h5", 1_000_000+20_000, 1000, 100_000,
               (x,y)->downsampling(x, y, rate),(x,y)->downsampling(x, y, rate);
               do_split=do_split,
               querydbfile=querydbfile)
-createTLabel(region, querydbfile; tfile="trj.t",labelfile="trj.label")
+createTLabel(region, querydbfile; tfile="exp-trj.t",labelfile="exp-trj.label")
