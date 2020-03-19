@@ -96,7 +96,7 @@ vecs[i] # the vector representation of i-th trajectory
 
 ## Experiments
 
-Instead of running the encoding step by step, you can direclty run the experiments with the [jupyter-notebook]().
+Instead of running the above encoding step manually, you can direclty run the experiments with the [jupyter-notebook](https://github.com/boathit/t2vec/blob/master/experiment/t2vec.ipynb) once you obtain the trained model.
 
 ## Reference
 
