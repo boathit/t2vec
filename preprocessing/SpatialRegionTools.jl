@@ -4,6 +4,7 @@ using StatsBase:rle
 using HDF5
 using DataStructures
 using NearestNeighbors
+using Statistics, Printf
 include("utils.jl")
 
 #export SpatialRegion, makeVocab!, gps2vocab, saveKNearestVocabs,
@@ -141,6 +142,15 @@ function cell2gps(region::SpatialRegion, cell::Int)
     meters2lonlat(x, y)
 end
 
+function gps2offset(region::SpatialRegion, lon::Float64, lat::Float64)
+    x, y = lonlat2meters(lon, lat)
+    xoffset = round(x - region.minx, digits=6) / region.xstep
+    yoffset = round(y - region.miny, digits=6) / region.ystep
+    xoffset, yoffset
+end
+
+
+
 #lon, lat = -8.735152, 40.953673
 #x, y = lonlat2meters(lon, lat)
 #coord2cell(region, x, y+300)
@@ -229,7 +239,7 @@ k-nearest vocabs and corresponding distances for each vocab.
 
 This is used in training for KLDiv loss.
 """
-function saveKNearestVocabs(region::SpatialRegion)
+function saveKNearestVocabs(region::SpatialRegion, datapath::String)
     V = zeros(Int, region.k, region.vocab_size)
     D = zeros(Float64, region.k, region.vocab_size)
     for vocab in 0:region.vocab_start-1
@@ -244,7 +254,7 @@ function saveKNearestVocabs(region::SpatialRegion)
         D[:, vocab+1] .= dists
     end
     cellsize = Int(region.xstep)
-    file = joinpath("../data", region.name * "-vocab-dist-cell$(cellsize).h5")
+    file = joinpath(datapath, region.name * "-vocab-dist-cell$(cellsize).h5")
     h5open(file, "w") do f
         f["V"], f["D"] = V, D
     end
@@ -301,6 +311,25 @@ function seq2trip(region::SpatialRegion, seq::Vector{Int})
     trip
 end
 
+function tripmeta(region::SpatialRegion, trip::Matrix{Float64})
+    # centroid(x) = minimum(x) + (maximum(x) - minimum(x)) / 2
+    # xs = Vector{Float64}(undef, size(trip, 2))
+    # ys = Vector{Float64}(undef, size(trip, 2))
+    # for i in 1:size(trip, 2)
+    #     lon, lat = trip[:, i]
+    #     xs[i], ys[i] = gps2coarseoffset(region, lon, lat)
+    # end
+    # centroid(xs) / region.xstep, centroid(ys) / region.ystep
+    mins, maxs = minimum(trip, dims=2), maximum(trip, dims=2)
+    centroids = mins + (maxs - mins) / 2
+    gps2offset(region, centroids...)
+end
+
+function seqmeta(region::SpatialRegion, seq::Vector{Int})
+    trip = seq2trip(region, seq)
+    tripmeta(region, trip)
+end
+
 """
 Create training and validation dataset
 
@@ -308,6 +337,7 @@ createTrainVal(region, "porto.h5", downsampling, 50, 10)
 """
 function createTrainVal(region::SpatialRegion,
                         trjfile::String,
+                        datapath::String,
                         injectnoise::Function,
                         ntrain::Int,
                         nval::Int;
@@ -316,25 +346,34 @@ function createTrainVal(region::SpatialRegion,
                         max_length=100)
     seq2str(seq) = join(map(string, seq), " ") * "\n"
     h5open(trjfile, "r") do f
-        trainsrc, traintrg = open("../data/train.src", "w"), open("../data/train.trg", "w")
-        validsrc, validtrg = open("../data/val.src", "w"), open("../data/val.trg", "w")
+        trainsrc = open("$datapath/train.src", "w")
+        traintrg = open("$datapath/train.trg", "w")
+        trainmta = open("$datapath/train.mta", "w")
+
+        validsrc = open("$datapath/val.src", "w")
+        validtrg = open("$datapath/val.trg", "w")
+        validmta = open("$datapath/val.mta", "w")
         for i = 1:ntrain+nval
             trip = f["/trips/$i"] |> read
             min_length <= size(trip, 2) <= max_length || continue
             trg = trip2seq(region, trip) |> seq2str
+            meta = tripmeta(region, trip)
+            mta = @sprintf "%.2f %.2f\n" meta[1] meta[2]
+
             noisetrips = injectnoise(trip, nsplit)
-            srcio, trgio = i <= ntrain ? (trainsrc, traintrg) : (validsrc, validtrg)
+            srcio, trgio, mtaio = i <= ntrain ? (trainsrc, traintrg, trainmta) : (validsrc, validtrg, validmta)
             for noisetrip in noisetrips
                 ## here: feel weird
                 #src = noisetrip |> trip2seq |> seq2str
                 src = trip2seq(region, noisetrip) |> seq2str
                 write(srcio, src)
                 write(trgio, trg)
+                write(mtaio, mta)
             end
             i % 100_000 == 0 && println("Scaned $i trips...")
             #i >= 8_000 && break
         end
-        close(trainsrc), close(traintrg), close(validsrc), close(validtrg)
+        close(trainsrc), close(traintrg), close(trainmta), close(validsrc), close(validtrg), close(validmta)
     end
     nothing
 end

@@ -47,7 +47,7 @@ def KLDIVloss(output, target, criterion, V, D):
 
 def KLDIVloss2(output, target, criterion, V, D):
     """
-    constructing full target distribution, expensive
+    constructing full target distribution, expensive!
     """
     indices = torch.index_select(V, 0, target)
     targetk = torch.index_select(D, 0, target)
@@ -66,45 +66,81 @@ def dist2weight(D, dist_decay_speed=0.8):
     return D
 
 
-def batchloss(output, target, generator, lossF, generator_batch):
+def genLoss(gendata, m0, m1, lossF, args):
     """
     One batch loss
 
     Input:
-    output (seq_len, batch, hidden_size): the output of EncoderDecoder
-    target (seq_len, batch): target tensor
-    generator: map the output of EncoderDecoder into the vocabulary space and do
-        log transform
-    lossF: loss function
-    generator_batch: the maximum number of words to generate each step
+    gendata: a named tuple contains
+        gendata.src (seq_len1, batch): input tensor
+        gendata.lengths (1, batch): lengths of source sequences
+        gendata.trg (seq_len2, batch): target tensor.
+    m0: map input to output.
+    m1: map the output of EncoderDecoder into the vocabulary space and do
+        log transform.
+    lossF: loss function.
     ---
     Output:
     loss
     """
+    input, lengths, target = gendata.src, gendata.lengths, gendata.trg
+    if args.cuda and torch.cuda.is_available():
+        input, lengths, target = input.cuda(), lengths.cuda(), target.cuda()
+    ## (seq_len2, batch, hidden_size)
+    output = m0(input, lengths, target)
+
     batch = output.size(1)
     loss = 0
     ## we want to decode target in range [BOS+1:EOS]
     target = target[1:]
-    for o, t in zip(output.split(generator_batch),
-                    target.split(generator_batch)):
+    for o, t in zip(output.split(args.generator_batch),
+                    target.split(args.generator_batch)):
         ## (seq_len, generator_batch, hidden_size) =>
         ## (seq_len*generator_batch, hidden_size)
         o = o.view(-1, o.size(2))
-        o = generator(o)
+        o = m1(o)
         ## (seq_len*generator_batch,)
         t = t.view(-1)
         loss += lossF(o, t)
 
     return loss.div(batch)
 
+def disLoss(a, p, n, m0, triplet_loss, args):
+    """
+    a (named tuple): anchor data
+    p (named tuple): positive data
+    n (named tuple): negative data
+    """
+    a_src, a_lengths, a_invp = a.src, a.lengths, a.invp
+    p_src, p_lengths, p_invp = p.src, p.lengths, p.invp
+    n_src, n_lengths, n_invp = n.src, n.lengths, n.invp
+    if args.cuda and torch.cuda.is_available():
+        a_src, a_lengths, a_invp = a_src.cuda(), a_lengths.cuda(), a_invp.cuda()
+        p_src, p_lengths, p_invp = p_src.cuda(), p_lengths.cuda(), p_invp.cuda()
+        n_src, n_lengths, n_invp = n_src.cuda(), n_lengths.cuda(), n_invp.cuda()
+    ## (num_layers * num_directions, batch, hidden_size)
+    a_h, _ = m0.encoder(a_src, a_lengths)
+    p_h, _ = m0.encoder(p_src, p_lengths)
+    n_h, _ = m0.encoder(n_src, n_lengths)
+    ## (num_layers, batch, hidden_size * num_directions)
+    a_h = m0.encoder_hn2decoder_h0(a_h)
+    p_h = m0.encoder_hn2decoder_h0(p_h)
+    n_h = m0.encoder_hn2decoder_h0(n_h)
+    ## take the last layer as representations (batch, hidden_size * num_directions)
+    a_h, p_h, n_h = a_h[-1], p_h[-1], n_h[-1]
+
+    return triplet_loss(a_h[a_invp], p_h[p_invp], n_h[n_invp])
+
+
+
 def init_parameters(model):
     for p in model.parameters():
         p.data.uniform_(-0.1, 0.1)
 
-def savecheckpoint(state, is_best, filename="checkpoint.pt"):
-    torch.save(state, filename)
+def savecheckpoint(state, is_best, args):
+    torch.save(state, args.checkpoint)
     if is_best:
-        shutil.copyfile(filename, 'best_model.pt')
+        shutil.copyfile(args.checkpoint, os.path.join(args.data, 'best_model.pt'))
 
 def validate(valData, model, lossF, args):
     """
@@ -118,26 +154,25 @@ def validate(valData, model, lossF, args):
     num_iteration = valData.size // args.batch
     if valData.size % args.batch > 0: num_iteration += 1
 
-    total_loss = 0
+    total_genloss = 0
     for iteration in range(num_iteration):
-        input, lengths, target = valData.getbatch()
-        if args.cuda and torch.cuda.is_available():
-            input, lengths, target = input.cuda(), lengths.cuda(), target.cuda()
-        output = m0(input, lengths, target)
-        loss = batchloss(output, target, m1, lossF, args.generator_batch)
-        total_loss += loss.item() * output.size(1)
+        gendata = valData.getbatch_generative()
+        with torch.no_grad():
+            genloss = genLoss(gendata, m0, m1, lossF, args)
+            total_genloss += genloss.item() * gendata.trg.size(1)
     ## switch back to training mode
     m0.train()
     m1.train()
-    return total_loss / valData.size
+    return total_genloss / valData.size
 
 
 def train(args):
-    logging.basicConfig(filename="training.log", level=logging.INFO)
+    logging.basicConfig(filename=os.path.join(args.data, "training.log"), level=logging.INFO)
 
     trainsrc = os.path.join(args.data, "train.src")
     traintrg = os.path.join(args.data, "train.trg")
-    trainData = DataLoader(trainsrc, traintrg, args.batch, args.bucketsize)
+    trainmta = os.path.join(args.data, "train.mta")
+    trainData = DataLoader(trainsrc, traintrg, trainmta, args.batch, args.bucketsize)
     print("Reading training data...")
     trainData.load(args.max_num_line)
     print("Allocation: {}".format(trainData.allocation))
@@ -145,8 +180,9 @@ def train(args):
 
     valsrc = os.path.join(args.data, "val.src")
     valtrg = os.path.join(args.data, "val.trg")
+    valmta = os.path.join(args.data, "val.mta")
     if os.path.isfile(valsrc) and os.path.isfile(valtrg):
-        valData = DataLoader(valsrc, valtrg, args.batch, args.bucketsize, True)
+        valData = DataLoader(valsrc, valtrg, valmta, args.batch, args.bucketsize, True)
         print("Reading validation data...")
         valData.load()
         assert valData.size > 0, "Validation data size must be greater than 0"
@@ -170,6 +206,7 @@ def train(args):
             V, D = V.cuda(), D.cuda()
         criterion = KLDIVcriterion(args.vocab_size)
         lossF = lambda o, t: KLDIVloss(o, t, criterion, V, D)
+    triplet_loss = nn.TripletMarginLoss(margin=1.0, p=2)
 
     m0 = EncoderDecoder(args.vocab_size,
                         args.embedding_size,
@@ -211,21 +248,25 @@ def train(args):
         #init_parameters(m1)
         ## here: load pretrained wrod (cell) embedding
 
-    num_iteration = args.epochs * sum(trainData.allocation) // args.batch
+    num_iteration = 67000*128 // args.batch
     print("Iteration starts at {} "
           "and will end at {}".format(args.start_iteration, num_iteration-1))
     ## training
     for iteration in range(args.start_iteration, num_iteration):
         try:
-            input, lengths, target = trainData.getbatch()
-            if args.cuda and torch.cuda.is_available():
-                input, lengths, target = input.cuda(), lengths.cuda(), target.cuda()
-
             m0_optimizer.zero_grad()
             m1_optimizer.zero_grad()
-            ## forward computation
-            output = m0(input, lengths, target)
-            loss = batchloss(output, target, m1, lossF, args.generator_batch)
+            ## generative loss
+            gendata = trainData.getbatch_generative()
+            genloss = genLoss(gendata, m0, m1, lossF, args)
+            ## discriminative loss
+            disloss_cross, disloss_inner = 0, 0
+            if args.use_discriminative and iteration % 10 == 0:
+                a, p, n = trainData.getbatch_discriminative_cross()
+                disloss_cross = disLoss(a, p, n, m0, triplet_loss, args)
+                a, p, n = trainData.getbatch_discriminative_inner()
+                disloss_inner = disLoss(a, p, n, m0, triplet_loss, args)
+            loss = genloss + args.discriminative_w * (disloss_cross + disloss_inner)
             ## compute the gradients
             loss.backward()
             ## clip the gradients
@@ -235,9 +276,11 @@ def train(args):
             m0_optimizer.step()
             m1_optimizer.step()
             ## average loss for one word
-            avg_loss = loss.item() / target.size(0)
+            avg_genloss = genloss.item() / gendata.trg.size(0)
             if iteration % args.print_freq == 0:
-                print("Iteration: {}\tLoss: {}".format(iteration, avg_loss))
+                print("Iteration: {0:}\tGenerative Loss: {1:.3f}\t"\
+                      "Discriminative Cross Loss: {2:.3f}\tDiscriminative Inner Loss: {3:.3f}"\
+                      .format(iteration, avg_genloss, disloss_cross, disloss_inner))
             if iteration % args.save_freq == 0 and iteration > 0:
                 prec_loss = validate(valData, (m0, m1), lossF, args)
                 if prec_loss < best_prec_loss:
@@ -256,6 +299,6 @@ def train(args):
                     "m1": m1.state_dict(),
                     "m0_optimizer": m0_optimizer.state_dict(),
                     "m1_optimizer": m1_optimizer.state_dict()
-                }, is_best)
+                }, is_best, args)
         except KeyboardInterrupt:
             break

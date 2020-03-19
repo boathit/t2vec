@@ -1,56 +1,24 @@
-using JSON
-using Serialization
 include("utils.jl")
 
 
-datapath = "../data"
-
-param = JSON.parsefile("../hyper-parameters.json")
-regionps = param["region"]
-cityname = regionps["cityname"]
-cellsize = regionps["cellsize"]
-
+cellsize = 100.0
+cityname = "porto"
 region = SpatialRegion(cityname,
-                       regionps["minlon"], regionps["minlat"],
-                       regionps["maxlon"], regionps["maxlat"],
+                       -8.735152, 40.953673,
+                       -8.156309, 41.307945,
                        cellsize, cellsize,
-                       regionps["minfreq"], # minfreq
-                       40_000, # maxvocab_size
-                       10, # k
-                       4)
+                       100, # minfreq
+                       60_000, # maxvocab_size
+                       5, # k
+                       4) # vocab_start
+paramfile = "$(region.name)-param-cell$(Int(cellsize))"
+loadregion!(region, joinpath("../data", paramfile))
 
-println("Building spatial region with:
-        cityname=$(region.name),
-        minlon=$(region.minlon),
-        minlat=$(region.minlat),
-        maxlon=$(region.maxlon),
-        maxlat=$(region.maxlat),
-        xstep=$(region.xstep),
-        ystep=$(region.ystep),
-        minfreq=$(region.minfreq)")
-
-paramfile = "$datapath/$(region.name)-param-cell$(Int(cellsize))"
-if isfile(paramfile)
-    println("Reading parameter file from $paramfile")
-    region = deserialize(paramfile)
-    println("Loaded $paramfile into region")
-else
-    println("Cannot find $paramfile")
-end
-
-
+rate = 0.5
 do_split = true
-start = 1_000_000+20_000
-num_query = 1000
-num_db = 100_000
-querydbfile = joinpath(datapath, "querydb.h5")
-tfile = joinpath(datapath, "trj.t")
-labelfile = joinpath(datapath, "trj.label")
-vecfile = joinpath(datapath, "trj.h5")
-
-createQueryDB("$datapath/$cityname.h5", start, num_query, num_db,
-              (x, y)->(x, y),
-              (x, y)->(x, y);
+querydbfile = "querydb.h5"
+createQueryDB("../data/porto.h5", 1_000_000+20_000, 1000, 100_000,
+              (x,y)->downsampling(x, y, rate),(x,y)->downsampling(x, y, rate);
               do_split=do_split,
               querydbfile=querydbfile)
-createTLabel(region, querydbfile; tfile=tfile, labelfile=labelfile)
+createTLabel(region, querydbfile; tfile="exp-trj.t",labelfile="exp-trj.label")

@@ -84,11 +84,11 @@ def t2vec(args):
             m0.cuda()
         m0.eval()
         vecs = []
-        scaner = DataOrderScaner(os.path.join(args.data, "trj.t"), args.t2vec_batch)
+        scaner = DataOrderScaner(os.path.join(args.data, "{}-trj.t".format(args.prefix)), args.t2vec_batch)
         scaner.load()
         i = 0
         while True:
-            if i % 10 == 0:
+            if i % 100 == 0:
                 print("{}: Encoding {} trjs...".format(i, args.t2vec_batch))
             i = i + 1
             src, lengths, invp = scaner.getbatch()
@@ -107,7 +107,7 @@ def t2vec(args):
         vecs = torch.cat(vecs)
         ## (num_layers, num_seqs, hidden_size * num_directions)
         vecs = vecs.transpose(0, 1).contiguous()
-        path = os.path.join(args.data, "trj.h5")
+        path = os.path.join(args.data, "{}-trj.h5".format(args.prefix))
         print("=> saving vectors into {}".format(path))
         with h5py.File(path, "w") as f:
             for i in range(m0.num_layers):
