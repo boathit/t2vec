@@ -11,7 +11,7 @@ The output hdf5 file will be used to construct vocabulary by `makeVocab!()` in
 """
 function porto2h5(csvfile::String)
     df = CSV.read(csvfile)
-    df = df[df.MISSING_DATA .== "False", :]
+    df = df[df.MISSING_DATA .== false, :]
     sort!(df, [:TIMESTAMP])
     println("Processing $(size(df, 1)) trips...")
     ## writing in numeric matrix with hdf5
