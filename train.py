@@ -198,7 +198,7 @@ def train(args):
         assert os.path.isfile(args.knearestvocabs),\
             "{} does not exist".format(args.knearestvocabs)
         print("Loading vocab distance file {}...".format(args.knearestvocabs))
-        with h5py.File(args.knearestvocabs) as f:
+        with h5py.File(args.knearestvocabs, "r") as f:
             V, D = f["V"][...], f["D"][...]
             V, D = torch.LongTensor(V), torch.FloatTensor(D)
         D = dist2weight(D, args.dist_decay_speed)

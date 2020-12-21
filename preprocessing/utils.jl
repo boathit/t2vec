@@ -10,7 +10,7 @@ The output hdf5 file will be used to construct vocabulary by `makeVocab!()` in
 `SpatialRegionTools.jl`.
 """
 function porto2h5(csvfile::String)
-    df = CSV.read(csvfile)
+    df = CSV.File(csvfile) |> DataFrame
     df = df[df.MISSING_DATA .== false, :]
     sort!(df, [:TIMESTAMP])
     println("Processing $(size(df, 1)) trips...")

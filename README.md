@@ -1,12 +1,12 @@
 
-This repository contains the code used in our **ICDE-18** paper [Deep Representation Learning for Trajectory Similarity Computation](http://www.ntu.edu.sg/home/lixiucheng/pdfs/icde18-t2vec.pdf).
+This repository contains the code used in our **ICDE-18** paper [Deep Representation Learning for Trajectory Similarity Computation](https://xiucheng.org/pdfs/icde18-t2vec.pdf).
 
 ## Requirements
 
 * Ubuntu OS
-* [Julia 1.0+](https://julialang.org/downloads/)
-* Python >= 3.5 (Anaconda3 is recommended)
-* PyTorch 1.0+
+* [Julia 1.5+](https://julialang.org/downloads/) (tested on 1.5)
+* Python >= 3.8 (Anaconda3 is recommended)
+* PyTorch 1.0+ (tested on 1.0, 1.3, 1.5, 1.7)
 
 Please refer to the source code to install all required packages in Julia and Python.
 
@@ -59,32 +59,11 @@ The training produces two model `checkpoint.pt` and `best_model.pt`, `checkpoint
 In our original experiment, the model was trained with a Tesla K40 GPU about 14 hours so you can just terminate the training after 14 hours if you use a GPU that is as good as or better than K40, the above two models will be saved automatically.
 
 
-## Encoding
-
-### Create test files
-
-```bash
-cd experiment
-
-julia createTest.jl
-
-head -5 exp-trj.t # the first 5 trajectories
-head -5 exp-trj.label # trajectory ids
-```
-
-It will produce two files `exp-trj.t` and `exp-trj.label`. Each row of `exp-trj.t` (`exp-trj.label`) is a token representation of the orginal trajectory (trajectory ID).
-
-### Encode trajectories into vectors
-
-```shell
-$ python t2vec.py -data experiment -vocab_size 18866 -checkpoint "best_model.pt" -mode 2
-```
-
-It will encode the trajectories in file `experiment/exp-trj.t` into vectors which will be saved into file `experiment/exp-trj.h5`.
+## Encoding and Experiments
 
 ### Vector representation
 
-In our experiment we train a three-layers model and the last layer outputs are used as the trajectory representations, see the code in `experiment/experiment.jl`:
+In our experiments we train a three-layers model and the last layer outputs are used as the trajectory representations:
 
 ```julia
 vecs = h5open(joinpath("", "trj.h5"), "r") do f
@@ -94,9 +73,9 @@ end
 vecs[i] # the vector representation of i-th trajectory
 ```
 
-## Experiments
+### Experiments
 
-Instead of running the above encoding step manually, you can directly run the experiments with the [jupyter-notebook](https://github.com/boathit/t2vec/blob/master/experiment/t2vec.ipynb) once you obtain the trained model.
+Please refer to the [jupyter-notebook](https://github.com/boathit/t2vec/blob/master/experiment/t2vec.ipynb) for the experiments once you obtain the trained model (install [Ijulia](https://github.com/JuliaLang/IJulia.jl) for the Jupyter notebook first).
 
 ## Reference
 
