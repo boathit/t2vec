@@ -32,7 +32,7 @@ function porto2h5(csvfile::String)
             f["/timestamps/$num"] = collect(0:tripLength-1) * 15.0
             num % 100_000 == 0 && println("$num")
         end
-        attrs(f)["num"] = num
+        attributes(f)["num"] = num
         println("Incompleted trip: $num_incompleted.\nSaved $num trips.")
     end
 end
@@ -156,14 +156,14 @@ end
 #h5open("/tmp/test.h5", "w") do f
 #    f["/trips/1"] = rand(10,2)
 #    f["/trips/2"] = rand(30,2)
-#    attrs(f)["num"] = 2
-#    attrs(f)["/trips/1"] = 10
-#    attrs(f)["/trips/2"] = 11
+#    attributes(f)["num"] = 2
+#    attributes(f)["/trips/1"] = 10
+#    attributes(f)["/trips/2"] = 11
 #end
 #
 #h5open("/tmp/test.h5", "r") do f
 #    read(f["/trips/1"])
-#    attrs(f)["/trips/1"] |> read
+#    attributes(f)["/trips/1"] |> read
 #end
 
 #porto2h5("/Users/fineday/Downloads/train.csv")
@@ -172,7 +172,7 @@ end
 #tic()
 #tripLengths = Int[]
 #h5open("preprocessing/porto.h5", "r") do f
-#    num = read(attrs(f)["num"])
+#    num = read(attributes(f)["num"])
 #    for i = 1:num
 #        trip = read(f["/trips/$i"])
 #        push!(tripLengths, size(trip, 2))
@@ -181,9 +181,9 @@ end
 #end
 #toc()
 #h5open("porto.h5", "r") do fread
-#    num = attrs(fread)["num"] |> read
+#    num = attributes(fread)["num"] |> read
 #    h5open("/tmp/porto.h5", "w") do fwrite
-#        attrs(fwrite)["num"] = num
+#        attributes(fwrite)["num"] = num
 #        for i = 1:num
 #            trip = read(fread["/trips/$i"])
 #            fwrite["/trips/$i"] = trip
@@ -202,8 +202,8 @@ end
 
 #h5open("porto.h5", "r") do fread
 #    h5open("/tmp/porto.h5", "w") do fwrite
-#        num = attrs(fread)["num"] |> read
-#        attrs(fwrite)["num"] = num
+#        num = attributes(fread)["num"] |> read
+#        attributes(fwrite)["num"] = num
 #        for i = 1:num
 #            fwrite["/trips/$i"] = fread["/trips/$i"] |> read |> transpose
 #            i % 100_000 == 0 && println(i)
@@ -213,7 +213,7 @@ end
 
 #tripLengths = Int[]
 #h5open("../preprocessing/porto.h5", "r") do f
-#    num = read(attrs(f)["num"])
+#    num = read(attributes(f)["num"])
 #    for i = 1:num
 #        trip = read(f["/trips/$i"])
 #        tripLength = size(trip, 2)

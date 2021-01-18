@@ -183,7 +183,7 @@ function makeVocab!(region::SpatialRegion, trjfile::String)
     num_out_region = 0
     ## scan all trips (trajectories)
     h5open(trjfile, "r") do f
-        num = read(attrs(f)["num"])
+        num = read(attributes(f)["num"])
         for i = 1:num
             trip = read(f["/trips/$i"])
             for p = 1:size(trip, 2)

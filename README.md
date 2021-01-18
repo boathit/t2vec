@@ -34,13 +34,13 @@ The preprocessing step will generate all data required in the training stage.
 2. If you want to work on another city, you are supposed to provide the expected hdf5 input `t2vec/data/cityname.h5` as well as set proper hyperparameters in `t2vec/hyper-parameters.json`. The expected hdf5 input requires the following format,
 
    ```julia
-   attrs(f)["num"] = number of trajectories
+   attributes(f)["num"] = number of trajectories
 
    f["/trips/i"] = matrix (2xn)
    f["/timestamps/i"] = vector (n,)
    ```
 
-   where `attrs(f)["num"]` stores the number of trajectories in total; `f["/trips/i"]` is the gps matrix for i-th trajectory, the first row is the longitude sequence and the second row is the latitude sequence, `f["/timestamps/i"]` is the corresponding timestamp sequence. Please refer to [`porto2h5`](https://github.com/boathit/t2vec/blob/master/preprocessing/utils.jl#L12) to see how to generate it.
+   where `attributes(f)["num"]` stores the number of trajectories in total; `f["/trips/i"]` is the gps matrix for i-th trajectory, the first row is the longitude sequence and the second row is the latitude sequence, `f["/timestamps/i"]` is the corresponding timestamp sequence. Please refer to [`porto2h5`](https://github.com/boathit/t2vec/blob/master/preprocessing/utils.jl#L12) to see how to generate it.
 
 
 
