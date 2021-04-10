@@ -58,7 +58,7 @@ function createQueryDB(trjfile::String, start::Int,
     nquery, ndb = 0, 0
     h5open(trjfile, "r") do f
         querydbf = h5open(querydbfile, "w")
-        num = read(attrs(f)["num"])
+        num = read(attributes(f)["num"])
         for i = start:num
             trip = read(f["/trips/$i"])
             timestamp = read(f["/timestamps/$i"])
